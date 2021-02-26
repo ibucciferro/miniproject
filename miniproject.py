@@ -70,7 +70,7 @@ numCDS = 'The HCMV genome (EF999921) has ' + str(counter) + ' CDS. \n'
 os.system('echo ' + " '" + numCDS + "' >> miniProject.log")
 
 #finally, build the index using kallisto
-kallisto_command = 'kallisto index -i cdsHCMV.idx cdsHCMS.fasta'
+kallisto_command = 'kallisto index -i cdsHCMV.idx cdsHCMV.fasta'
 os.system(kallisto_command)
 
 
@@ -79,11 +79,11 @@ os.system(kallisto_command)
 #start by creating a command to call kallisto and label the sample paired end files
 samplepair1 = '_sample_1.fastq'
 samplepair2 = '_sample_2.fastq'
-call_kallisto = 'time kallisto quant -i HCMV_cds.idx -o"
+kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o"
 
 #loop through the SRR files and call kallisto
 for record in SRRnum:
-    os.system(call_kallisto + miniprojdir + 'results/' + record + ' -b 30 -t 4 ' + record + samplepair1 + ' ' + record + samplepair2)
+    os.system(kallisto_call + miniprojdir + 'results/' + record + ' -b 30 -t 4 ' + record + samplepair1 + ' ' + record + samplepair2)
     
 #then run the R script for sleuth! 
 os.system('Rscript Rsleuth.R')
@@ -91,14 +91,34 @@ os.system('Rscript Rsleuth.R')
 
 
 #Step 4. use bowtie2 to create an index for HCMV and save reads to the map
+#begin by building the bowtie index
+os.system('bowtie2-build cdsHCMV.fasta CDS_HCMV')
+
+#then loop through the SRR numbers and map the reads
+for item in SRRnum:
+    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + samplepair1 + ' -2 ' + item + samplepair2 + ' -S ' + item + 'CDSmap.sam --al-conc-gz ' + item + '_mapped_%.fq.gz')
+
+#finally, loop through the SRR numbers and write the read pairs numbers to the log file
+for j in SRRnum:
+    
+
+
 
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
+#run spades and add the spades command to the log file
 
 
 
-#Step 6. find the number of contigs with a length greater than 1000 
+#Step 6. find the number of contigs with a length greater than 1000 bp
+#open the file with the contigs in it and add each of the records to a list
+
+#then create a counter for the number of contigs with length > 1000 bp
+
 
 #Step 7. find the total number of bp in all of the contigs greater than 1000 bp in length
+#loop through the contig list made in step 6 and add the lengths of each of the contigs that are greater than 1000 bp to the total length
+
+
 
 #Step 8. take longest contig from spades and do a blast analysis 
 
