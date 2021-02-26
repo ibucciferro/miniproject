@@ -1,1 +1,3 @@
-# miniproject
+MiniProject (Comp Bio)
+
+
