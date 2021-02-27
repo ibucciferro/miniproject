@@ -17,7 +17,7 @@ os.system('touch miniProject.log')
 
 
 #Step 1. retrieve the transcriptones and convert to paired-end fastq files
-#start by opening the file and reading it into a list (and then close the file)
+#start by opening the file with the SRR links and reading it into a list (and then close the file)
 file = open(miniprojdir + 'testdata.txt', 'r')
 testdata = list(file.read().strip().split('\n'))
 file.close()
@@ -31,13 +31,14 @@ SRRnum = []
 for item in testdata:
     SRRnum.append(item[-10:])
     
-#create a command to get the paired end fastq files
+#create a command to get the paired end fastq files (fastq-dump --split-files)
 pairedend_command = 'fastq-dump -I --split-files'
 for i in SRRnum:
     os.system(pairedend_command + ' ' + i)
 
 #turn the files into sample data by only using the first #### lines of the files
 #use head -n ##### to only use the first #### lines of the files
+#should #### = 50000? Ask in class!
 pairedend1 = '_1.fastq'
 pairedend2 = '_2.fastq'
 for j in SRRnum:
@@ -100,7 +101,12 @@ for item in SRRnum:
 
 #finally, loop through the SRR numbers and write the read pairs numbers to the log file
 for j in SRRnum:
-    
+    if j == SRRnum[0]:
+    elif i == SRRnum[1]:
+    elif i == SRRnum[2]:
+    elif i == SRRnum[3]:
+    else:
+          break
 
 
 
@@ -111,12 +117,33 @@ for j in SRRnum:
 
 #Step 6. find the number of contigs with a length greater than 1000 bp
 #open the file with the contigs in it and add each of the records to a list
+contigslist = []
+
 
 #then create a counter for the number of contigs with length > 1000 bp
+contigcounter = 0
+for contig in contigslist:
+    if len(contig.seq)>1000:
+          contigcounter += 1
+    else:
+          continue
+ 
+#write the contigcounter to the log file
+os.system('echo There are ' + str(contigcounter) + ' contigs > 1000 bp in the assembly. >> miniProject.log')
+
 
 
 #Step 7. find the total number of bp in all of the contigs greater than 1000 bp in length
 #loop through the contig list made in step 6 and add the lengths of each of the contigs that are greater than 1000 bp to the total length
+totallength = 0
+for contig in contigslist:
+    if len(contig.seq)>1000:
+          totallength += len(contig.seq)
+    else:
+          continue
+
+#write the totallength variable to the log file
+os.system('echo There are ' + str(totallength) + ' bp in the assembly. >> miniProject.log')
 
 
 
