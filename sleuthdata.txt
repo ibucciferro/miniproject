@@ -1,4 +1,4 @@
-run_accession condition sample
+accession_number condition sample
 SRR560030 2dpi Donor1
 SRR5660033 6dpi Donor1
 SRR5660044 2dpi Donor3
