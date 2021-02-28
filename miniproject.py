@@ -2,23 +2,14 @@
 import os
 from Bio import Entrez
 from Bio import SeqIO
-from Bio.Blast import NCBIWW
+from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
-
-#start off by making the directory (mkdir) and copying the files to it
-os.system('mkdir miniProject_Isabella_Bucciferro')
-miniprojdir = '.../miniProject_Isabella_Bucciferro'
-os.system('cp testdata.txt ' + miniprojdir)
-os.system('cp Rsleuth.R ' + miniprojdir)
-#then, change the directory to the miniproject directory (to move into it)
-os.chdir(miniprojdir)
-os.system('touch miniProject.log')
 
 
 
 #Step 1. retrieve the transcriptones and convert to paired-end fastq files
 #start by opening the file with the SRR links and reading it into a list (and then close the file)
-file = open(miniprojdir + 'testdata.txt', 'r')
+file = open('testdata.txt', 'r')
 testdata = list(file.read().strip().split('\n'))
 file.close()
 
@@ -42,8 +33,8 @@ for i in SRRnum:
 pairedend1 = '_1.fastq'
 pairedend2 = '_2.fastq'
 for j in SRRnum:
-    os.system('head -n 50000 ' + j + pairedend1 + ' > " + j + '_sample_1.fastq')
-    os.system('head -n 50000 ' + j + pairedend2 + ' > " + j + '_sample_2.fastq')
+    os.system('head -n 50000 ' + j + pairedend1 + ' > ' + j + '_sample_1.fastq')
+    os.system('head -n 50000 ' + j + pairedend2 + ' > ' + j + '_sample_2.fastq')
 
 
 
@@ -52,14 +43,14 @@ for j in SRRnum:
 Entrez.email = 'ibucciferro@luc.edu'
 handle = Entrez.efetch(db='nucleotide',id='EF999921',rettype='gbwithparts', retmode='text')
 item = SeqIO.read(handle, 'gb')
-outputfile = open("cdsHCMV.fasta', 'w')
+outputfile = open('cdsHCMV.fasta', 'w')
 
 #loop through item.features (the CDS features) and write them to the file
 counter = 0
 for j in item.features:
     if j.type == 'CDS':
         #if it is a CDS, add to the counter and determine the name and sequence (write to file)
-        counter += counter
+        counter = counter + 1
         name = j.qualifiers['protein_id']
         sequence = j.extract(item.seq)
         outputfile.write(">" + str(name) + '\n' + str(sequence) + '\n')
@@ -67,8 +58,9 @@ outputfile.close()
 
 #write the HCMV CDS number to the log file
 #store the intended output in a variable and call it when writing to the miniproject.log
-numCDS = 'The HCMV genome (EF999921) has ' + str(counter) + ' CDS. \n'
-os.system('echo ' + " '" + numCDS + "' >> miniProject.log")
+with open('miniProject.log', 'a') as output:
+    output.write('The HCMV genome (EF999921) has ' + str(counter) + ' CDS.' + '\n')
+    output.close()
 
 #finally, build the index using kallisto
 kallisto_command = 'kallisto index -i cdsHCMV.idx cdsHCMV.fasta'
@@ -102,9 +94,9 @@ for item in SRRnum:
 #finally, loop through the SRR numbers and write the read pairs numbers to the log file
 for j in SRRnum:
     if j == SRRnum[0]:
-    elif i == SRRnum[1]:
-    elif i == SRRnum[2]:
-    elif i == SRRnum[3]:
+    elif j == SRRnum[1]:
+    elif j == SRRnum[2]:
+    elif j == SRRnum[3]:
     else:
           break
 
@@ -124,28 +116,31 @@ contigslist = []
 contigcounter = 0
 for contig in contigslist:
     if len(contig.seq)>1000:
-          contigcounter += 1
+          contigcounter = contigcounter + 1
     else:
           continue
  
 #write the contigcounter to the log file
-os.system('echo There are ' + str(contigcounter) + ' contigs > 1000 bp in the assembly. >> miniProject.log')
-
-
+with open('miniProject.log', 'a') as output:
+    output.write('There are ' + str(contigcounter) + ' contigs > 1000 in the assembly.' + '\n')
+    output.close()
 
 #Step 7. find the total number of bp in all of the contigs greater than 1000 bp in length
 #loop through the contig list made in step 6 and add the lengths of each of the contigs that are greater than 1000 bp to the total length
 totallength = 0
 for contig in contigslist:
     if len(contig.seq)>1000:
-          totallength += len(contig.seq)
+          totallength = totallength + len(contig.seq)
     else:
           continue
 
 #write the totallength variable to the log file
-os.system('echo There are ' + str(totallength) + ' bp in the assembly. >> miniProject.log')
+with open('miniProject.log', 'a') as output:
+    output.write('There are ' + str(totallength) + ' bp in the assembly.' + '\n')
+    output.close()
 
 
 
 #Step 8. take longest contig from spades and do a blast analysis 
+
 
