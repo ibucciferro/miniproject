@@ -179,3 +179,4 @@ with open('miniProject.log', 'a') as output:
 #Step 8. take longest contig from spades and do a blast analysis 
 
 
+
