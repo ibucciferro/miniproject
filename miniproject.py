@@ -43,9 +43,9 @@ for j in SRRnum:
 Entrez.email = 'ibucciferro@luc.edu'
 handle = Entrez.efetch(db='nucleotide',id='EF999921',rettype='gbwithparts', retmode='text')
 item = SeqIO.read(handle, 'gb')
-outputfile = open('cdsHCMV.fasta', 'w')
 
 #loop through item.features (the CDS features) and write them to the file
+outputfile = open('cdsHCMV.fasta', 'w')
 counter = 0
 for j in item.features:
     if j.type == 'CDS':
@@ -68,18 +68,7 @@ os.system(kallisto_command)
 
 
 
-#Step 3. quantify the TPM of each CDS using kallisto and run the results using the R package sleuth (while will be in an R file to be called at the end)
-#start by creating a command to call kallisto and label the sample paired end files
-samplepair1 = '_sample_1.fastq'
-samplepair2 = '_sample_2.fastq'
-kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o"
-
-#loop through the SRR files and call kallisto
-for record in SRRnum:
-    os.system(kallisto_call + miniprojdir + 'results/' + record + ' -b 30 -t 4 ' + record + samplepair1 + ' ' + record + samplepair2)
-    
-#then run the R script for sleuth! 
-os.system('Rscript Rsleuth.R')
+#ADD STEP 3 HERE
 
 
 
@@ -89,28 +78,74 @@ os.system('bowtie2-build cdsHCMV.fasta CDS_HCMV')
 
 #then loop through the SRR numbers and map the reads
 for item in SRRnum:
-    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + samplepair1 + ' -2 ' + item + samplepair2 + ' -S ' + item + 'CDSmap.sam --al-conc-gz ' + item + '_mapped_%.fq.gz')
+    os.system('bowtie1 --quiet --no-unal --al-conc Bowtie_' +item+ '.fastq -x CDS_HCMV -1 ' +item+samplepair1+ ' -2 ' +item+samplepair2+ ' -S ' +item+ '.sam')
 
-#finally, loop through the SRR numbers and write the read pairs numbers to the log file
+#loop through the SRR numbers and assign to the donor name (donor 1/3 2/6dpi)
+donorname = ''
 for j in SRRnum:
     if j == SRRnum[0]:
+        donor = 'Donor 1 (2dpi)'
     elif j == SRRnum[1]:
+        donor = 'Donor 1 (6dpi)'
     elif j == SRRnum[2]:
+        donor = 'Donor 3 (2dpi)'
     elif j == SRRnum[3]:
+        donor = 'Donor 3 (6dpi)'
     else:
           break
+    
+    #determine the counter before running bowtie (and open the files before running bowtie and count the reads to determine the before count)
+    bcounter1 = 0
+    bcounter2 = 0
+    bSRR1 = open(str(j)+pairedend1)
+    bSRR2 = open(str(j)+pairedend2)
+    for i in bSRR1:
+        bcounter1 = bcounter1 + 1
+    for k in bSRR2:
+        bcounter2 = bcounter2 + 1
+    beforeCounter = (bcounter1 + bcounter2)/8
+    
+    #do the same steps to count the reads after running bowtie 
+    acounter1 = 0
+    acounter2 = 0
+    aSRR1 = open('Bowtie_'+j+'.1.fastq')
+    aSRR2 = open('Bowtie_'+j+'.2.fastq')
+    for l in aSRR1:
+        acounter1 = 0
+    for m in aSRR2:
+        acounter2 = 0
+    afterCounter = (acounter1 + acounter2)/8
+    
+    with open('miniProject.log', 'a') as output:
+        output.write(str(donor) + ' had ' + str(beforeCounter) + ' read pairs before Bowtie2 filtering and ' + str(afterCounter) + ' read pairs after.' + '\n')
+        output.close()
 
 
 
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
+#start by labeling all of the SRRs to be used in the spades command
+SRR1 = SRRnum[0]
+SRR2 = SRRnum[1]
+SRR3 = SRRnum[2]
+SRR4 = SRRnum[3]
+
 #run spades and add the spades command to the log file
+spades_command = 'spades -k 55, 77, 99, 127 --only-assembler -t 2 --pe1-1 Bowtie_'+SRR1+'.1.fastq --pe1-2 Bowtie_'+SRR1+'.2.fastq --pe2-1 Bowtie_'+SRR2+'.1.fastq --pe2-2 Bowtie_'+SRR2+'.2.fastq --pe3-1 Bowtie_'+SRR3+'.1.fastq --pe3-2 Bowtie_'+SRR3+'.2.fastq --pe4-1 Bowtie_'+SRR4+'.1.fastq --pe4-2 Bowtie_'+SRR4+'.2.fastq -o SpadesAssembly/'
+
+#write the spades command to the log file
+with open('miniProject.log', 'a') as output:
+    output.write(spades_command + '\n')
+    output.close()
 
 
 
 #Step 6. find the number of contigs with a length greater than 1000 bp
 #open the file with the contigs in it and add each of the records to a list
 contigslist = []
-
+handlefile = open('SpadesAssembly/contigs.fasta')
+for items in SeqIO.parse(handlefile, 'fasta'):
+    contigslist.append(items)
+handlefile.close()
 
 #then create a counter for the number of contigs with length > 1000 bp
 contigcounter = 0
