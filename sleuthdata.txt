@@ -1,0 +1,5 @@
+run_accession condition sample
+SRR560030 2dpi Donor1
+SRR5660033 6dpi Donor1
+SRR5660044 2dpi Donor3
+SRR5660045 6dpi Donor3
