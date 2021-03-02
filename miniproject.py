@@ -6,6 +6,15 @@ from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
 
 
+#start by creating the outputfile, copying the files to the directory, and then changing the directory
+projdir = '.../miniProject_Isabella_Bucciferro/'
+os.system('mkdir miniProject_Isabella_Bucciferro')
+os.system('cp testdata.txt '+ projdir)
+os.system('cp sleuthdata.txt ' +projdir)
+os.system('cp Rsleuth.R ' +projdir)
+os.system('cd ' + projdir)
+
+
 
 #Step 1. retrieve the transcriptones and convert to paired-end fastq files
 #start by opening the file with the SRR links and reading it into a list (and then close the file)
@@ -27,14 +36,10 @@ pairedend_command = 'fastq-dump -I --split-files'
 for i in SRRnum:
     os.system(pairedend_command + ' ' + i)
 
-#turn the files into sample data by only using the first #### lines of the files
-#use head -n ##### to only use the first #### lines of the files
-#should #### = 50000? Ask in class!
-pairedend1 = '_1.fastq'
-pairedend2 = '_2.fastq'
+#turn the files into sample data by only using the first 50000 lines of the files
 for j in SRRnum:
-    os.system('head -n 50000 ' + j + pairedend1 + ' > ' + j + '_sample_1.fastq')
-    os.system('head -n 50000 ' + j + pairedend2 + ' > ' + j + '_sample_2.fastq')
+    os.system('head -n 50000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
+    os.system('head -n 50000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
 
 
 
@@ -59,7 +64,7 @@ outputfile.close()
 #write the HCMV CDS number to the log file
 #store the intended output in a variable and call it when writing to the miniproject.log
 with open('miniProject.log', 'a') as output:
-    output.write('The HCMV genome (EF999921) has ' + str(counter) + ' CDS.' + '\n')
+    output.write('The HCMV genome (EF999921) has ' + str(counter) + ' CDS.' + '\n'+ '\n')
     output.close()
 
 #finally, build the index using kallisto
@@ -68,7 +73,15 @@ os.system(kallisto_command)
 
 
 
-#ADD STEP 3 HERE
+#Step 3. quantify the TPM of each CDS using kallisto and run the results using the R package sleuth (while will be in an R file to be called at the end)
+#start by creating a command to call kallisto
+kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o'
+os.system('mkdir ' + projdir + 'results')
+
+#loop through the SRR files and call kallisto before running the R script for sleuth
+for record in SRRnum:
+    os.system(kallisto_call + record + ' -b 30 -t 4 ' + record + '_s_1.fastq ' + record + '_s_2.fastq')
+os.system('Rscript Rsleuth.R')
 
 
 
@@ -76,65 +89,38 @@ os.system(kallisto_command)
 #begin by building the bowtie index
 os.system('bowtie2-build cdsHCMV.fasta CDS_HCMV')
 
-#then loop through the SRR numbers and map the reads
+#then loop through the SRR numbers and map the reads using a bowtie command line call
 for item in SRRnum:
-    os.system('bowtie1 --quiet --no-unal --al-conc Bowtie_' +item+ '.fastq -x CDS_HCMV -1 ' +item+samplepair1+ ' -2 ' +item+samplepair2+ ' -S ' +item+ '.sam')
+    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped_%.fq.gz')
+mapped = '_mapped_1.fq.gz'
 
-#loop through the SRR numbers and assign to the donor name (donor 1/3 2/6dpi)
-donorname = ''
-for j in SRRnum:
-    if j == SRRnum[0]:
-        donor = 'Donor 1 (2dpi)'
-    elif j == SRRnum[1]:
-        donor = 'Donor 1 (6dpi)'
-    elif j == SRRnum[2]:
-        donor = 'Donor 3 (2dpi)'
-    elif j == SRRnum[3]:
-        donor = 'Donor 3 (6dpi)'
+#finally, write the output to the log file
+for i in SRRnum:
+    if i == SRRnum[0]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
+    elif i == SRRnum[1]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
+    elif i == SRRnum[2]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
+    elif i == SRRnum[3]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
     else:
-          break
-    
-    #determine the counter before running bowtie (and open the files before running bowtie and count the reads to determine the before count)
-    bcounter1 = 0
-    bcounter2 = 0
-    bSRR1 = open(str(j)+pairedend1)
-    bSRR2 = open(str(j)+pairedend2)
-    for i in bSRR1:
-        bcounter1 = bcounter1 + 1
-    for k in bSRR2:
-        bcounter2 = bcounter2 + 1
-    beforeCounter = (bcounter1 + bcounter2)/8
-    
-    #do the same steps to count the reads after running bowtie 
-    acounter1 = 0
-    acounter2 = 0
-    aSRR1 = open('Bowtie_'+j+'.1.fastq')
-    aSRR2 = open('Bowtie_'+j+'.2.fastq')
-    for l in aSRR1:
-        acounter1 = 0
-    for m in aSRR2:
-        acounter2 = 0
-    afterCounter = (acounter1 + acounter2)/8
-    
-    with open('miniProject.log', 'a') as output:
-        output.write(str(donor) + ' had ' + str(beforeCounter) + ' read pairs before Bowtie2 filtering and ' + str(afterCounter) + ' read pairs after.' + '\n')
-        output.close()
-
+        break
 
 
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
-#start by labeling all of the SRRs to be used in the spades command
-SRR1 = SRRnum[0]
-SRR2 = SRRnum[1]
-SRR3 = SRRnum[2]
-SRR4 = SRRnum[3]
 
 #run spades and add the spades command to the log file
-spades_command = 'spades -k 55, 77, 99, 127 --only-assembler -t 2 --pe1-1 Bowtie_'+SRR1+'.1.fastq --pe1-2 Bowtie_'+SRR1+'.2.fastq --pe2-1 Bowtie_'+SRR2+'.1.fastq --pe2-2 Bowtie_'+SRR2+'.2.fastq --pe3-1 Bowtie_'+SRR3+'.1.fastq --pe3-2 Bowtie_'+SRR3+'.2.fastq --pe4-1 Bowtie_'+SRR4+'.1.fastq --pe4-2 Bowtie_'+SRR4+'.2.fastq -o SpadesAssembly/'
+spades_command = 'spades -k 55,77,99,127 -t 4 --only-assembler --pe1-1 SRR5660030_mapped_1.fq.gz --pe1-2 SRR5660030_mapped_2.fq.gz --pe2-1 SRR5660033_mapped_1.fq.gz --pe2-2 SRR5660033_mapped_2.fq.gz --pe3-1 SRR5660044_mapped_1.fq.gz --pe3-2 SRR5660044_mapped_2.fq.gz --pe4-1 SRR5660045_mapped_1.fq.gz --pe4-2 SRR5660045_mapped_2.fq.gz -o SpadesAssembly/'
+os.system(spades_command)
 
 #write the spades command to the log file
 with open('miniProject.log', 'a') as output:
-    output.write(spades_command + '\n')
+    output.write('\n' + spades_command + '\n' + '\n')
     output.close()
 
 
@@ -157,8 +143,10 @@ for contig in contigslist:
  
 #write the contigcounter to the log file
 with open('miniProject.log', 'a') as output:
-    output.write('There are ' + str(contigcounter) + ' contigs > 1000 in the assembly.' + '\n')
+    output.write('There are ' + str(contigcounter) + ' contigs > 1000 in the assembly.' + '\n'+ '\n')
     output.close()
+
+
 
 #Step 7. find the total number of bp in all of the contigs greater than 1000 bp in length
 #loop through the contig list made in step 6 and add the lengths of each of the contigs that are greater than 1000 bp to the total length
@@ -171,12 +159,33 @@ for contig in contigslist:
 
 #write the totallength variable to the log file
 with open('miniProject.log', 'a') as output:
-    output.write('There are ' + str(totallength) + ' bp in the assembly.' + '\n')
+    output.write('There are ' + str(totallength) + ' bp in the assembly.' + '\n'+ '\n')
     output.close()
 
 
 
-#Step 8. take longest contig from spades and do a blast analysis 
+#Step 8. take longest contig from spades and do a blast analysis
 
+#open the ligated contigs file from the SpadesAssembly
+newfile1 = open('SpadesAssembly/contigs.fasta').read()
 
+#loop through the contigs and determine the longest one
+longestcontig = ''
+contigsize = 0
+for contig1 in newfile1:
+    if len(contig1) > contigsize:
+        longestcontig = str(contig1)
+        contigsize = len(contig1)
+    else:
+        continue
+
+#create the blast database command and call it 
+file_fasta = open(dbsequence.fasta)
+db_name = betaherpesvirinaedb
+makeblastdb = 'makeblastdb -in ' + file_fasta+ ' -out '+ db_name + ' -title' + db_name+ ' -dbtype nucl'
+os.system(makeblastdb)
+
+#create the blast command and call it
+blast_command = 'blastn -query contigs.fasta -db betaherpesvirinaedb -out blastn_results.csv -outfmt "10 sacc pident length qstart qend sstart send bitscore evalue stitle"'
+os.system(blast_command)
 
