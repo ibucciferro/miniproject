@@ -4,15 +4,8 @@ from Bio import Entrez
 from Bio import SeqIO
 
 
-#start by creating the outputfile, copying the files to the directory, and then changing the directory
-projdir = '.../miniProject_Isabella_Bucciferro/'
-os.system('mkdir miniProject_Isabella_Bucciferro')
-os.system('cp testdata.txt '+ projdir)
-os.system('cp sleuthdata.txt ' +projdir)
-os.system('cp Rsleuth.R ' +projdir)
-os.system('cd ' + projdir)
-
-
+#start by creating output file folder
+os.system("mkdir miniProject_Isabella_Bucciferro")
 
 #Step 1. retrieve the transcriptones and convert to paired-end fastq files
 #start by opening the file with the SRR links and reading it into a list (and then close the file)
@@ -94,14 +87,6 @@ os.system('cd kallisto_results/')
 os.system('Rscript Rsleuth.R')
 os.system('cd ..')
 
-#then take the file from the Rsleuth output and put it in the log file
-outputfiles = open('miniProject.log', 'a')
-FDRfile = open('tableresults.txt','r')
-for fileline in FDRfile:
-    outputfiles.write(fileline)
-outputfiles.close()
-FDRfile.close()
-
 
 
 #Step 4. use bowtie2 to create an index for HCMV and save reads to the map
@@ -139,7 +124,7 @@ logfile1.close()
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
 
 #run spades and add the spades command to the log file
-spades_command = 'spades -k 55,77,99,127 -t 2 --pe1-1 SRR5660030_mapped_1.fq --pe1-2 SRR5660030_mapped_2.fq --pe2-1 SRR5660033_mapped_1.fq --pe2-2 SRR5660033_mapped_2.fq --pe3-1 SRR5660044_mapped_1.fq --pe3-2 SRR5660044_mapped_2.fq --pe4-1 SRR5660045_mapped_1.fq --pe4-2 SRR5660045_mapped_2.fq -o SpadesAssembly/'
+spades_command = 'spades -k 55,77,99,127 -t 2 --only-assembler --pe1-1 SRR5660030_mapped.1.fq --pe1-2 SRR5660030_mapped.2.fq --pe2-1 SRR5660033_mapped.1.fq --pe2-2 SRR5660033_mapped.2.fq --pe3-1 SRR5660044_mapped.1.fq --pe3-2 SRR5660044_mapped.2.fq --pe4-1 SRR5660045_mapped.1.fq --pe4-2 SRR5660045_mapped.2.fq -o SpadesAssembly/'
 os.system(spades_command)
 
 #write the spades command to the log file
@@ -237,8 +222,9 @@ headers = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', 'bits
 
 #call the function and grab the top 10 hits
 x = parse_blast(outputfile1, headers)
-top_ten = x[:10]
+topten = x[:10]
 
 #now, write the output to the log file
+openout = open('miniProject.log', 'a')
 
 
