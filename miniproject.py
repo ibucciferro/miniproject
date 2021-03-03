@@ -2,10 +2,15 @@
 import os
 from Bio import Entrez
 from Bio import SeqIO
-
+#import logging to be used to add the output to the log file for steps 3 and 8
+import logging
 
 #start by creating output file folder
 os.system("mkdir miniProject_Isabella_Bucciferro")
+
+
+
+
 
 #Step 1. retrieve the transcriptones and convert to paired-end fastq files
 #start by opening the file with the SRR links and reading it into a list (and then close the file)
@@ -32,6 +37,8 @@ for i in SRRnum:
 for j in SRRnum:
     os.system('head -n 50000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
     os.system('head -n 50000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
+
+
 
 
 
@@ -67,6 +74,8 @@ os.system(kallisto_command)
 
 
 
+
+
 #Step 3. quantify the TPM of each CDS using kallisto and run the results using the R package sleuth (while will be in an R file to be called at the end)
 #start by creating a command to call kallisto
 kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o'
@@ -75,17 +84,19 @@ os.system('cd kallisto_results')
 
 #then loop through to make the output files for the sample transcriptomes
 for i in SRRnum:
-    os.system('mkdir ' + i)
+    os.system('mkdir ' + i+'.1')
 os.system('cd ..')
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
 for record in SRRnum:
-    os.system('kallisto quant -i cdsHCMV.idx -o kallisto_results/' +record+ ' -b 30 -t 4 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
+    os.system('time kallisto quant -i cdsHCMV.idx -o kallisto_results/' +record+ '.1 -b 30 -t 4 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
 
 #then change the directory, run the R script, and then change back to the old directory!
 os.system('cd kallisto_results/')
 os.system('Rscript Rsleuth.R')
 os.system('cd ..')
+
+
 
 
 
@@ -121,6 +132,8 @@ logfile1.close()
 
 
 
+
+
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
 
 #run spades and add the spades command to the log file
@@ -134,6 +147,8 @@ with open('miniProject.log', 'a') as output:
 
 
 
+
+
 #Step 6. find the number of contigs with a length greater than 1000 bp
 #open the file with the contigs in it and add each of the records to a list
 contigslist = []
@@ -142,12 +157,10 @@ for items in SeqIO.parse(handlefile, 'fasta'):
     contigslist.append(items)
 handlefile.close()
 
-#then create a counter for the number of contigs with length > 1000 bp
-contigcounter = 0
+#then create a counting loop for the number of contigs with length > 1000 bp
 longcontiglist = []
 for contig in contigslist:
-    if len(contig.seq)>1000:
-          contigcounter = contigcounter + 1
+    if len(str(contig.seq))>1000:
           longcontiglist.append(str(contig.seq))
           
     else:
@@ -155,19 +168,18 @@ for contig in contigslist:
  
 #write the contigcounter to the log file
 with open('miniProject.log', 'a') as output:
-    output.write('There are ' + str(contigcounter) + ' contigs > 1000 in the assembly.' + '\n'+ '\n')
+    output.write('There are ' + str(len(longcontiglist)) + ' contigs > 1000 in the assembly.' + '\n'+ '\n')
     output.close()
+
+
 
 
 
 #Step 7. find the total number of bp in all of the contigs greater than 1000 bp in length
 #loop through the contig list made in step 6 and add the lengths of each of the contigs that are greater than 1000 bp to the total length
 totallength = 0
-for contig in contigslist:
-    if len(contig.seq)>1000:
-          totallength = totallength + len(contig.seq)
-    else:
-          continue
+for contig in longcontiglist:
+    totallength = totallength + len(contig)
 
 #write the totallength variable to the log file
 with open('miniProject.log', 'a') as output:
@@ -176,8 +188,9 @@ with open('miniProject.log', 'a') as output:
 
 
 
+
+
 #Step 8. take longest contig from spades and do a blast analysis
-#loop through the contigs and determine the longest one
 #start by sorting the list by length and finding the longest contig (should be the last one in the list)
 longcontiglist.sort(key = len)
 longestcon = longcontiglist[-1]
@@ -195,7 +208,7 @@ file12.close()
 filelongcon.close()
 
 #create the blast database command and call it 
-makeblastdb = 'makeblastdb -in dbsequence.fasta -out miniProject_Isabella_Bucciferro/betaherpesvirinaedb -title miniProject_Isabella_Bucciferro/betaherpesvirinaedb -dbtype nucl'
+makeblastdb = 'makeblastdb -in dbsequence.fasta -out betaherpesvirinaedb -title betaherpesvirinaedb -dbtype nucl'
 os.system('cd ..')
 os.system(makeblastdb)
 
@@ -206,6 +219,8 @@ os.system(blast_command)
 #then parse the blast results and grab the 10 hits
 import csv
 outputfile1 = 'blastn_results.csv'
+#label the headers into a list
+headernames = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', 'bitscore', 'evalue', 'stitle']
 
 #create a function to parse the blast hits
 def parse_blast(filename, headers):
@@ -217,14 +232,20 @@ def parse_blast(filename, headers):
     blast_results.close()
     return x
 
-#label the headers into a list
-headers = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', 'bitscore', 'evalue', 'stitle']
-
 #call the function and grab the top 10 hits
-x = parse_blast(outputfile1, headers)
-topten = x[:10]
+parsedblast = parse_blast(outputfile1, headernames)
+topten = parsedblast[:10]
 
 #now, write the output to the log file
-openout = open('miniProject.log', 'a')
+logging.basicConfig(filename = 'miniProject.log', level = logging.INFO)
 
+#tab delimit the headers
+tabhead = '\t'.join(headernames)
+logging.info(tabhead)
+#then loop through the topten list and write the output to the files
+for item in topten:
+    iteminfo = list(item.values())
+    iteminfo = [str(i) for i in iteminfo]
+    finaloutput = '\t'.join(iteminfo)
+    logging.info(finaloutput)
 
