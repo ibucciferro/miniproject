@@ -4,19 +4,22 @@ library(dplyr)
 
 #label directory before creating a list of paths for the kallisto results
 projdir <- '.../miniProject_Isabella_Bucciferro'
-sample_id <- dir(file.path(projdir, "results")) 
-kall_dirs <- file.path(projdir, "results", sample_id) 
+projdir <- paste(projdir, '/kallisto_results', sep='')
+sample_id <- dir(file.path(projdir)) 
+kall_dirs <- file.path(projdir, sample_id) 
 
-#then load the table with the sleuth data.txt file
-#the sleuth data should include the accession numbers, conditions, and the sample name (donor1 or donor3)
-stab <- read.table(file.path('sleuthdata.txt'), header = TRUE, stringsAsFactors = FALSE)
+#then, create the table by setting the conditions and making a data frame before adding the column names
+condition <- c("2 dpi", "6 dpi", "2 dpi", "6 dpi")
+table1 <-as.data.frame(cbind(sample_id, condition, kall_dirs))
+colnames(table1) <-c("sample", "condition", "path")
 
-#then, using dplyr, select the sample and use mutate to add the path variables so that kallisto can run properly
-stab <- dplyr::select(stab, sample = accession_number, condition)
-stab <- dplyr::mutate(stab, path = kall_dirs)
+#then make sure to convert all of the characters
+table1$sample<-as.character(table1$sample) 
+table1$condition<-as.character(table1$condition)
+table1$path<-as.character(table1$path)
 
 #create sleuth object, fit the full model, and then fit the reduced model before testing
-so <- sleuth_prep(stab, extra_bootstrap_summary = TRUE)
+so <- sleuth_prep(table1, extra_bootstrap_summary = TRUE)
 so <- sleuth_fit(so, ~condition, 'full')
 so <- sleuth_fit(so, ~1, 'reduced')
 so <- sleuth_lrt(so, 'reduced', 'full')
@@ -26,4 +29,4 @@ sleuth_table <- sleuth_results(so, 'reduced:full', 'lrt', show_all=FALSE)
 sleuth_significant <- dplyr::filter(sleuth_table, qval <= 0.05)
 
 tableoutput <- sleuth_significant[1:4]
-write.tabe(tableoutput, 'miniProject.log', append = TRUE, sep='\t', dec = '.', row.names = TRUE, col.names = TRUE)
+write.tabe(tableoutput, 'miniProject.log', append = TRUE, sep='\t',  row.names = FALSE, col.names = TRUE, quote = FALSE)

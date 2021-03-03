@@ -2,8 +2,6 @@
 import os
 from Bio import Entrez
 from Bio import SeqIO
-from Bio.Blast import NCBIWWW
-from Bio.Blast import NCBIXML
 
 
 #start by creating the outputfile, copying the files to the directory, and then changing the directory
@@ -12,6 +10,7 @@ os.system('mkdir miniProject_Isabella_Bucciferro')
 os.system('cp testdata.txt '+ projdir)
 os.system('cp sleuthdata.txt ' +projdir)
 os.system('cp Rsleuth.R ' +projdir)
+os.system('cp dbsequence.fasta ' +projdir)
 os.system('cd ' + projdir)
 
 
@@ -37,6 +36,7 @@ for i in SRRnum:
     os.system(pairedend_command + ' ' + i)
 
 #turn the files into sample data by only using the first 50000 lines of the files
+#can change how much of the data is run through the wrapper by removing the "head -n 50000"
 for j in SRRnum:
     os.system('head -n 50000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
     os.system('head -n 50000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
@@ -76,12 +76,16 @@ os.system(kallisto_command)
 #Step 3. quantify the TPM of each CDS using kallisto and run the results using the R package sleuth (while will be in an R file to be called at the end)
 #start by creating a command to call kallisto
 kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o'
-os.system('mkdir ' + projdir + 'results')
+os.system('mkdir kallisto_results/')
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
 for record in SRRnum:
     os.system(kallisto_call + record + ' -b 30 -t 4 ' + record + '_s_1.fastq ' + record + '_s_2.fastq')
+
+#then change the directory, run the R script, and then change back to the old directory!
+os.system('cd kallisto_results/')
 os.system('Rscript Rsleuth.R')
+os.system('cd ..')
 
 
 
@@ -112,10 +116,11 @@ for i in SRRnum:
         break
 
 
+
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
 
 #run spades and add the spades command to the log file
-spades_command = 'spades -k 55,77,99,127 -t 4 --only-assembler --pe1-1 SRR5660030_mapped_1.fq.gz --pe1-2 SRR5660030_mapped_2.fq.gz --pe2-1 SRR5660033_mapped_1.fq.gz --pe2-2 SRR5660033_mapped_2.fq.gz --pe3-1 SRR5660044_mapped_1.fq.gz --pe3-2 SRR5660044_mapped_2.fq.gz --pe4-1 SRR5660045_mapped_1.fq.gz --pe4-2 SRR5660045_mapped_2.fq.gz -o SpadesAssembly/'
+spades_command = 'spades -k 55,77,99,127 -t 2 --pe1-1 SRR5660030_mapped_1.fq.gz --pe1-2 SRR5660030_mapped_2.fq.gz --pe2-1 SRR5660033_mapped_1.fq.gz --pe2-2 SRR5660033_mapped_2.fq.gz --pe3-1 SRR5660044_mapped_1.fq.gz --pe3-2 SRR5660044_mapped_2.fq.gz --pe4-1 SRR5660045_mapped_1.fq.gz --pe4-2 SRR5660045_mapped_2.fq.gz -o SpadesAssembly/'
 os.system(spades_command)
 
 #write the spades command to the log file
@@ -165,27 +170,26 @@ with open('miniProject.log', 'a') as output:
 
 
 #Step 8. take longest contig from spades and do a blast analysis
-
-#open the ligated contigs file from the SpadesAssembly
-newfile1 = open('SpadesAssembly/contigs.fasta').read()
-
 #loop through the contigs and determine the longest one
 longestcontig = ''
 contigsize = 0
-for contig1 in newfile1:
+for contig1 in contigslist:
     if len(contig1) > contigsize:
         longestcontig = str(contig1)
         contigsize = len(contig1)
     else:
         continue
 
+longcontigfile = open('longestcontig.fasta', 'w')
+longcontigfile.write(longestcontig)
+
+
 #create the blast database command and call it 
-file_fasta = open(dbsequence.fasta)
-db_name = betaherpesvirinaedb
-makeblastdb = 'makeblastdb -in ' + file_fasta+ ' -out '+ db_name + ' -title' + db_name+ ' -dbtype nucl'
+makeblastdb = 'makeblastdb -in dbsequence.fasta -out betaherpesvirinaedb -title betaherpesvirinaedb -dbtype nucl'
 os.system(makeblastdb)
 
 #create the blast command and call it
-blast_command = 'blastn -query contigs.fasta -db betaherpesvirinaedb -out blastn_results.csv -outfmt "10 sacc pident length qstart qend sstart send bitscore evalue stitle"'
+blast_command = 'blastn -query longestcontig.fasta -db betaherpesvirinaedb -out blastn_results.csv -outfmt "6 sacc pident length qstart qend sstart send bitscore evalue stitle"'
 os.system(blast_command)
+
 
