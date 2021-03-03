@@ -10,7 +10,6 @@ os.system('mkdir miniProject_Isabella_Bucciferro')
 os.system('cp testdata.txt '+ projdir)
 os.system('cp sleuthdata.txt ' +projdir)
 os.system('cp Rsleuth.R ' +projdir)
-os.system('cp dbsequence.fasta ' +projdir)
 os.system('cd ' + projdir)
 
 
@@ -69,7 +68,7 @@ with open('miniProject.log', 'a') as output:
     output.close()
 
 #finally, build the index using kallisto
-os.system('cd ' + projdir)
+os.system('cd miniProject_Isabella_Bucciferro')
 kallisto_command = 'kallisto index -i cdsHCMV.idx cdsHCMV.fasta'
 os.system(kallisto_command)
 
@@ -78,8 +77,8 @@ os.system(kallisto_command)
 #Step 3. quantify the TPM of each CDS using kallisto and run the results using the R package sleuth (while will be in an R file to be called at the end)
 #start by creating a command to call kallisto
 kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o'
-os.system('mkdir kallisto_results/')
-os.system('cd kallisto_results/')
+os.system('mkdir kallisto_results')
+os.system('cd kallisto_results')
 
 #then loop through to make the output files for the sample transcriptomes
 for i in SRRnum:
@@ -88,12 +87,20 @@ os.system('cd ..')
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
 for record in SRRnum:
-    os.system('kallisto quant -i cdsHCMV.idx -o kallistoresults/' +record+ ' -b 30 -t 4 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
+    os.system('kallisto quant -i cdsHCMV.idx -o kallisto_results/' +record+ ' -b 30 -t 4 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
 
 #then change the directory, run the R script, and then change back to the old directory!
 os.system('cd kallisto_results/')
 os.system('Rscript Rsleuth.R')
 os.system('cd ..')
+
+#then take the file from the Rsleuth output and put it in the log file
+outputfiles = open('miniProject.log', 'a')
+FDRfile = open('tableresults.txt','r')
+for fileline in FDRfile:
+    outputfiles.write(fileline)
+outputfiles.close()
+FDRfile.close()
 
 
 
@@ -231,5 +238,7 @@ headers = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', 'bits
 #call the function and grab the top 10 hits
 x = parse_blast(outputfile1, headers)
 top_ten = x[:10]
+
+#now, write the output to the log file
 
 
