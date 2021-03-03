@@ -44,6 +44,7 @@ for j in SRRnum:
 
 
 #Step 2. extract the CDS features from GenBank format (and build the index using kallisto)
+os.system('cd ..')
 #use efetch the search the NCBI databases (using the id = EF999921)
 Entrez.email = 'ibucciferro@luc.edu'
 handle = Entrez.efetch(db='nucleotide',id='EF999921',rettype='gbwithparts', retmode='text')
@@ -68,6 +69,7 @@ with open('miniProject.log', 'a') as output:
     output.close()
 
 #finally, build the index using kallisto
+os.system('cd ' + projdir)
 kallisto_command = 'kallisto index -i cdsHCMV.idx cdsHCMV.fasta'
 os.system(kallisto_command)
 
@@ -77,10 +79,16 @@ os.system(kallisto_command)
 #start by creating a command to call kallisto
 kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o'
 os.system('mkdir kallisto_results/')
+os.system('cd kallisto_results/')
+
+#then loop through to make the output files for the sample transcriptomes
+for i in SRRnum:
+    os.system('mkdir ' + i)
+os.system('cd ..')
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
 for record in SRRnum:
-    os.system(kallisto_call + record + ' -b 30 -t 4 ' + record + '_s_1.fastq ' + record + '_s_2.fastq')
+    os.system('kallisto quant -i cdsHCMV.idx -o kallistoresults/' +record+ ' -b 30 -t 4 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
 
 #then change the directory, run the R script, and then change back to the old directory!
 os.system('cd kallisto_results/')
@@ -95,32 +103,36 @@ os.system('bowtie2-build cdsHCMV.fasta CDS_HCMV')
 
 #then loop through the SRR numbers and map the reads using a bowtie command line call
 for item in SRRnum:
-    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped_%.fq.gz')
-mapped = '_mapped_1.fq.gz'
+    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped.fq')
 
-#finally, write the output to the log file
-for i in SRRnum:
-    if i == SRRnum[0]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    elif i == SRRnum[1]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    elif i == SRRnum[2]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    elif i == SRRnum[3]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    else:
-        break
+#then create anohter loop to add the before and after reads to a file
+for item in SRRnum:
+    os.system('wc -l < ' + item+ '_s_1.fastq >> beforereadfile.txt')
+    os.system('wc -l < ' + item+ '_mapped.1.fq >> afterreadfile.txt')
+
+#then go through the before/after files and determine the lengths
+beforebow = open('beforereadfile.txt').read().rstrip().split('\n')
+beforelength = list(map(int, beforebow))
+beforelength = [length//4 for length in beforelength]
+
+afterbow = open('afterreadfile.txt').read().rstrip().split('\n')
+afterlength = list(map(int, afterbow))
+afterlength = [length//4 for length in afterlength]
+
+#write the different before and after lengths to the log file
+logfile1 = open('miniProject.log', 'a')
+logfile1.write('Donor 1 (2dpi) had ' + str(beforelength[0])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[0])+ ' read pairs after.' + '\n')
+logfile1.write('Donor 1 (6dpi) had ' + str(beforelength[1])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[1])+ ' read pairs after.' + '\n')
+logfile1.write('Donor 3 (2dpi) had ' + str(beforelength[2])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[2])+ ' read pairs after.' + '\n')
+logfile1.write('Donor 3 (6dpi) had ' + str(beforelength[3])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[3])+ ' read pairs after.' + '\n')
+logfile1.close()
 
 
 
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
 
 #run spades and add the spades command to the log file
-spades_command = 'spades -k 55,77,99,127 -t 2 --pe1-1 SRR5660030_mapped_1.fq.gz --pe1-2 SRR5660030_mapped_2.fq.gz --pe2-1 SRR5660033_mapped_1.fq.gz --pe2-2 SRR5660033_mapped_2.fq.gz --pe3-1 SRR5660044_mapped_1.fq.gz --pe3-2 SRR5660044_mapped_2.fq.gz --pe4-1 SRR5660045_mapped_1.fq.gz --pe4-2 SRR5660045_mapped_2.fq.gz -o SpadesAssembly/'
+spades_command = 'spades -k 55,77,99,127 -t 2 --pe1-1 SRR5660030_mapped_1.fq --pe1-2 SRR5660030_mapped_2.fq --pe2-1 SRR5660033_mapped_1.fq --pe2-2 SRR5660033_mapped_2.fq --pe3-1 SRR5660044_mapped_1.fq --pe3-2 SRR5660044_mapped_2.fq --pe4-1 SRR5660045_mapped_1.fq --pe4-2 SRR5660045_mapped_2.fq -o SpadesAssembly/'
 os.system(spades_command)
 
 #write the spades command to the log file
@@ -140,9 +152,12 @@ handlefile.close()
 
 #then create a counter for the number of contigs with length > 1000 bp
 contigcounter = 0
+longcontiglist = []
 for contig in contigslist:
     if len(contig.seq)>1000:
           contigcounter = contigcounter + 1
+          longcontiglist.append(str(contig.seq))
+          
     else:
           continue
  
@@ -171,25 +186,50 @@ with open('miniProject.log', 'a') as output:
 
 #Step 8. take longest contig from spades and do a blast analysis
 #loop through the contigs and determine the longest one
-longestcontig = ''
-contigsize = 0
-for contig1 in contigslist:
-    if len(contig1) > contigsize:
-        longestcontig = str(contig1)
-        contigsize = len(contig1)
-    else:
-        continue
+#start by sorting the list by length and finding the longest contig (should be the last one in the list)
+longcontiglist.sort(key = len)
+longestcon = longcontiglist[-1]
 
-longcontigfile = open('longestcontig.fasta', 'w')
-longcontigfile.write(longestcontig)
-
+#then loop through the contigs.fasta and determine the fasta id and write it to a file
+file12 = open('SpadesAssembly/contigs.fasta')
+for items in SeqIO.parse(file12, 'fasta'):
+    sequence = str(items.seq)
+    if sequence == longestcon:
+        longestid = str(items.id)
+filelongcon = open('longestcontigfile.txt','w')
+filelongcon.write('>' + longestid+ '\n')
+filelongcon.write(longestcon)
+file12.close()
+filelongcon.close()
 
 #create the blast database command and call it 
-makeblastdb = 'makeblastdb -in dbsequence.fasta -out betaherpesvirinaedb -title betaherpesvirinaedb -dbtype nucl'
+makeblastdb = 'makeblastdb -in dbsequence.fasta -out miniProject_Isabella_Bucciferro/betaherpesvirinaedb -title miniProject_Isabella_Bucciferro/betaherpesvirinaedb -dbtype nucl'
+os.system('cd ..')
 os.system(makeblastdb)
 
 #create the blast command and call it
-blast_command = 'blastn -query longestcontig.fasta -db betaherpesvirinaedb -out blastn_results.csv -outfmt "6 sacc pident length qstart qend sstart send bitscore evalue stitle"'
+blast_command = 'blastn -query longestcontigfile.txt -db betaherpesvirinaedb -out blastn_results.csv -outfmt "10 sacc pident length qstart qend sstart send bitscore evalue stitle"'
 os.system(blast_command)
+
+#then parse the blast results and grab the 10 hits
+import csv
+outputfile1 = 'blastn_results.csv'
+
+#create a function to parse the blast hits
+def parse_blast(filename, headers):
+    x = []
+    blast_results = open(filename, 'r')
+    rows = csv.DictReader(blast_results, headers, delimiter=',')
+    for row in rows:
+        x.append(row)
+    blast_results.close()
+    return x
+
+#label the headers into a list
+headers = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', 'bitscore', 'evalue', 'stitle']
+
+#call the function and grab the top 10 hits
+x = parse_blast(outputfile1, headers)
+top_ten = x[:10]
 
 
