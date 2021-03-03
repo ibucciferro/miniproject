@@ -68,7 +68,7 @@ with open('miniProject.log', 'a') as output:
     output.close()
 
 #finally, build the index using kallisto
-os.system('cd miniProject_Isabella_Bucciferro')
+os.chdir('miniProject_Isabella_Bucciferro')
 kallisto_command = 'kallisto index -i cdsHCMV.idx cdsHCMV.fasta'
 os.system(kallisto_command)
 
@@ -85,50 +85,44 @@ os.system('cd kallisto_results')
 #then loop through to make the output files for the sample transcriptomes
 for i in SRRnum:
     os.system('mkdir ' + i+'.1')
-os.system('cd ..')
+os.chdir('..')
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
 for record in SRRnum:
-    os.system('time kallisto quant -i cdsHCMV.idx -o kallisto_results/' +record+ '.1 -b 30 -t 4 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
+    os.system('time kallisto quant -i cdsHCMV.idx -o kallisto_results/' +record+ '.1 -b 30 -t 2 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
 
 #then change the directory, run the R script, and then change back to the old directory!
-os.system('cd kallisto_results/')
 os.system('Rscript Rsleuth.R')
-os.system('cd ..')
 
 
 
 
 
 #Step 4. use bowtie2 to create an index for HCMV and save reads to the map
-#begin by building the bowtie index
+#begin by building the bowtie index and running the bowtie command
 os.system('bowtie2-build cdsHCMV.fasta CDS_HCMV')
 
 #then loop through the SRR numbers and map the reads using a bowtie command line call
 for item in SRRnum:
-    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped.fq')
+    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped_%.fq.gz')
+mapped = '_mapped_1.fq.gz'
 
-#then create anohter loop to add the before and after reads to a file
-for item in SRRnum:
-    os.system('wc -l < ' + item+ '_s_1.fastq >> beforereadfile.txt')
-    os.system('wc -l < ' + item+ '_mapped.1.fq >> afterreadfile.txt')
-
-#then go through the before/after files and determine the lengths
-beforebow = open('beforereadfile.txt').read().rstrip().split('\n')
-beforelength = list(map(int, beforebow))
-beforelength = [length//4 for length in beforelength]
-
-afterbow = open('afterreadfile.txt').read().rstrip().split('\n')
-afterlength = list(map(int, afterbow))
-afterlength = [length//4 for length in afterlength]
-
-#write the different before and after lengths to the log file
-logfile1 = open('miniProject.log', 'a')
-logfile1.write('Donor 1 (2dpi) had ' + str(beforelength[0])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[0])+ ' read pairs after.' + '\n')
-logfile1.write('Donor 1 (6dpi) had ' + str(beforelength[1])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[1])+ ' read pairs after.' + '\n')
-logfile1.write('Donor 3 (2dpi) had ' + str(beforelength[2])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[2])+ ' read pairs after.' + '\n')
-logfile1.write('Donor 3 (6dpi) had ' + str(beforelength[3])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[3])+ ' read pairs after.' + '\n')
-logfile1.close()
+#finally, write the output to the log file
+for i in SRRnum:
+    if i == SRRnum[0]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
+    elif i == SRRnum[1]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
+    elif i == SRRnum[2]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
+    elif i == SRRnum[3]:
+        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
+        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
+    else:
+        break
 
 
 
@@ -137,8 +131,9 @@ logfile1.close()
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
 
 #run spades and add the spades command to the log file
-spades_command = 'spades -k 55,77,99,127 -t 2 --only-assembler --pe1-1 SRR5660030_mapped.1.fq --pe1-2 SRR5660030_mapped.2.fq --pe2-1 SRR5660033_mapped.1.fq --pe2-2 SRR5660033_mapped.2.fq --pe3-1 SRR5660044_mapped.1.fq --pe3-2 SRR5660044_mapped.2.fq --pe4-1 SRR5660045_mapped.1.fq --pe4-2 SRR5660045_mapped.2.fq -o SpadesAssembly/'
+spades_command = 'spades -k 55,77,99,127 -t 2 --only-assembler --pe1-1 SRR5660030_mapped_1.fq.gz --pe1-2 SRR5660030_mapped_2.fq.gz --pe2-1 SRR5660033_mapped_1.fq.gz --pe2-2 SRR5660033_mapped_2.fq.gz --pe3-1 SRR5660044_mapped_1.fq.gz --pe3-2 SRR5660044_mapped_2.fq.gz --pe4-1 SRR5660045_mapped_1.fq.gz --pe4-2 SRR5660045_mapped_2.fq.gz -o SpadesAssembly/'
 os.system(spades_command)
+
 
 #write the spades command to the log file
 with open('miniProject.log', 'a') as output:
@@ -160,8 +155,9 @@ handlefile.close()
 #then create a counting loop for the number of contigs with length > 1000 bp
 longcontiglist = []
 for contig in contigslist:
-    if len(str(contig.seq))>1000:
-          longcontiglist.append(str(contig.seq))
+    sequence = str(contig.seq)
+    if len(sequence)>1000:
+          longcontiglist.append(sequence)
           
     else:
           continue
