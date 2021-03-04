@@ -87,17 +87,12 @@ for record in SRRnum:
 os.system('cd ..')
 os.system('Rscript Rsleuth.R')
 
-#then write the output results to the log file 
-f = open('sleuth_results.txt', 'r')
-f1 = f.readlints()
-sleuthoutput = []
-for line1 in f:
-    sleuthoutput.append(line1)
-    
-with open('miniProject.log', 'a') as output:
-    for item in sleuthoutput:
-        output.write(item+'\n')
-output.close()
+#using the logging system, write the output to the log file
+logging.basicConfig(filename = 'miniProject.log', level = logging.INFO)
+FDRfile = open('sleuth_results.txt', 'r')
+for newline in FDRfile:
+    logging.info(newline)
+
 
 
 
