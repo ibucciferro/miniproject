@@ -20,20 +20,18 @@ file.close()
 for item in testdata:
     os.system('wget ' + str(item))
 #then retrieve the SRR numbers from the testdata and turn them into paired end fastq files
-SRRnum = []
-for item in testdata:
-    SRRnum.append(item[-10:])
+SRRnum = ["SRR5660030","SRR5660033","SRR5660044","SRR5660045"]
     
 #create a command to get the paired end fastq files (fastq-dump --split-files)
 pairedend_command = 'fastq-dump -I --split-files'
 for i in SRRnum:
-    os.system(pairedend_command + ' ' + i)
+    os.system(pairedend_command + ' ' + i+'.1')
 
 #turn the files into sample data by only using the first 50000 lines of the files
 #can change how much of the data is run through the wrapper by removing the "head -n 50000"
 for j in SRRnum:
-    os.system('head -n 50000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
-    os.system('head -n 50000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
+    os.system('head -n 50000 ' + j + '.1_1.fastq' + ' > ' + j + '_s_1.fastq')
+    os.system('head -n 50000 ' + j + '.1_2.fastq' + ' > ' + j + '_s_2.fastq')
     
     
     
@@ -252,8 +250,10 @@ for item in topten:
 
 #finally, move all of the output files into the miniProject_NAME file (miniProject_Isabella_Bucciferro)
 for num in SRRnum:
-    os.system('mv '+num+'_1.fastq ~/miniProject_Isabella_Bucciferro')
-    os.system('mv '+num+'_2.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'.1 ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'.1.1 ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'.1_1.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'.1_2.fastq ~/miniProject_Isabella_Bucciferro')
     os.system('mv '+num+'_mapped_1.fastq ~/miniProject_Isabella_Bucciferro')
     os.system('mv '+num+'_mapped_2.fastq ~/miniProject_Isabella_Bucciferro')
     os.system('mv '+num+'_s_1.fastq ~/miniProject_Isabella_Bucciferro')
