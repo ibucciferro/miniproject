@@ -3,7 +3,7 @@ library(dplyr)
 
 
 #start by reading the data table txt file
-stab <- read.table("~miniproject/sleuthdata.txt", header = TRUE, stringsAsFactors = FALSE)
+stab <- read.table("sleuthdata.txt", header = TRUE, stringsAsFactors = FALSE)
 
 #create sleuth object, fit the full model, and then fit the reduced model before testing
 
