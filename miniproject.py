@@ -90,12 +90,12 @@ os.system('bowtie2-build cdsHCMV.fasta CDS_HCMV')
 
 #then loop through the SRR numbers and map the reads using a bowtie command line call
 for item in SRRnum:
-    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped_%.fq')
+    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped_%.fastq')
 
 #finally, write the output to the log file
 for item in SRRnum:
     os.system('wc -l < ' + item+ '_s_1.fastq >> beforereadfile.txt')
-    os.system('wc -l < ' + item+ '_mapped_1.fq >> afterreadfile.txt')
+    os.system('wc -l < ' + item+ '_mapped_1.fastq >> afterreadfile.txt')
 
 #then go through the before/after files and determine the lengths
 beforebow = open('beforereadfile.txt').read().rstrip()
@@ -124,7 +124,7 @@ logfile1.close()
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
 
 #run spades and add the spades command to the log file
-spades_command = 'spades -k 55,77,99,127 -t 2 --only-assembler --pe1-1 SRR5660030_mapped_1.fq --pe1-2 SRR5660030_mapped_2.fq --pe2-1 SRR5660033_mapped_1.fq --pe2-2 SRR5660033_mapped_2.fq --pe3-1 SRR5660044_mapped_1.fq --pe3-2 SRR5660044_mapped_2.fq --pe4-1 SRR5660045_mapped_1.fq --pe4-2 SRR5660045_mapped_2.fq -o SpadesAssembly/'
+spades_command = 'spades -k 55,77,99,127 -t 2 --only-assembler --pe1-1 SRR5660030_mapped_1.fastq --pe1-2 SRR5660030_mapped_2.fastq --pe2-1 SRR5660033_mapped_1.fastq --pe2-2 SRR5660033_mapped_2.fastq --pe3-1 SRR5660044_mapped_1.fastq --pe3-2 SRR5660044_mapped_2.fastq --pe4-1 SRR5660045_mapped_1.fastq --pe4-2 SRR5660045_mapped_2.fastq -o SpadesAssembly/'
 os.system(spades_command)
 
 
