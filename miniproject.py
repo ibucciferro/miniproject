@@ -73,13 +73,25 @@ os.system(kallisto_command)
 kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o'
 os.system('mkdir kallisto_results')
 
+#create directories for each of the SRR files in the kallisto_results folder
+os.system('cd kallisto_results')
+for record1 in SRRnum:
+    os.system('mkdir ' record1)
+os.system('cd ..')
+
 #loop through the SRR files and call kallisto before running the R script for sleuth
-for record in SRRnum:
-    os.system('time kallisto quant -i cdsHCMV.idx -o kallisto_results/ -b 30 -t 2 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
+for record in SRRnum: 
+    os.system('time kallisto quant -i cdsHCMV.idx -o kallisto_results/'+record+' -b 30 -t 2 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
 
 #then change the directory, run the R script, and then change back to the old directory!
+os.system('cd ..')
 os.system('Rscript Rsleuth.R')
 
+#using the logging system, write the output to the log file
+logging.basicConfig(filename = 'miniProject.log', level = logging.INFO)
+FDRfile = open('sleuth_results.txt', 'r')
+for newline in FDRfile:
+    logging.info(newline)
 
 
 
