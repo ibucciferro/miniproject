@@ -32,11 +32,11 @@ pairedend_command = 'fastq-dump -I --split-files'
 for i in SRRnum:
     os.system(pairedend_command + ' ' + i)
 
-#turn the files into sample data by only using the first 50000 lines of the files
-#can change how much of the data is run through the wrapper by removing the "head -n 50000"
+#turn the files into sample data by only using the first 10000 lines of the files
+#can change how much of the data is run through the wrapper by removing the "head -n 10000"
 for j in SRRnum:
-    os.system('head -n 50000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
-    os.system('head -n 50000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
+    os.system('head -n 10000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
+    os.system('head -n 10000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
 
 
 
@@ -48,9 +48,10 @@ os.system('cd ..')
 Entrez.email = 'ibucciferro@luc.edu'
 handle = Entrez.efetch(db='nucleotide',id='EF999921',rettype='gbwithparts', retmode='text')
 item = SeqIO.read(handle, 'gb')
+handle.close()
 
 #loop through item.features (the CDS features) and write them to the file
-outputfile = open('cdsHCMV.fasta', 'w')
+outputfile = open('cdsHCMV.txt', 'w')
 counter = 0
 for j in item.features:
     if j.type == 'CDS':
@@ -69,23 +70,21 @@ with open('miniProject.log', 'a') as output:
 
 #finally, build the index using kallisto
 os.chdir('miniProject_Isabella_Bucciferro')
-kallisto_command = 'kallisto index -i cdsHCMV.idx cdsHCMV.fasta'
-os.system(kallisto_command)
+os.system('kallisto index -i cdsHCMV.idx cdsHCMV.txt')
 
 
 
 
 
 #Step 3. quantify the TPM of each CDS using kallisto and run the results using the R package sleuth (while will be in an R file to be called at the end)
-#start by creating a command to call kallisto
-kallisto_call = 'time kallisto quant -i cdsHCMV.idx -o'
-os.system('mkdir kallisto_results')
-os.system('cd kallisto_results')
+#start by making the kallisto directory
+os.system("mkdir kallisto_results")
+os.system("cd kallisto_results")
 
 #then loop through to make the output files for the sample transcriptomes
 for i in SRRnum:
-    os.system('mkdir ' + i+'.1')
-os.chdir('..')
+    os.system("mkdir " + i+".1")
+os.system("cd ..")
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
 for record in SRRnum:
@@ -94,35 +93,44 @@ for record in SRRnum:
 #then change the directory, run the R script, and then change back to the old directory!
 os.system('Rscript Rsleuth.R')
 
+#using the logging tool, add the results to the file
+
+
 
 
 
 
 #Step 4. use bowtie2 to create an index for HCMV and save reads to the map
 #begin by building the bowtie index and running the bowtie command
-os.system('bowtie2-build cdsHCMV.fasta CDS_HCMV')
-
+os.system('bowtie2-build cdsHCMV.txt cdsHCMV')
+os.chdir('..')
 #then loop through the SRR numbers and map the reads using a bowtie command line call
 for item in SRRnum:
-    os.system('bowtie2 --quiet -x CDS_HCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S ' + item + 'mapping.sam --al-conc-gz ' + item + '_mapped_%.fq.gz')
-mapped = '_mapped_1.fq.gz'
+    os.system('bowtie2 --quiet -x cdsHCMV -1 ' + item + '_s_1.fastq -2 ' + item + '_s_2.fastq -S cdsHCMVmapping.sam --al-conc-gz ' + item + '_mapped.fq')
 
-#finally, write the output to the log file
-for i in SRRnum:
-    if i == SRRnum[0]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    elif i == SRRnum[1]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 1 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    elif i == SRRnum[2]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (2dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    elif i == SRRnum[3]:
-        os.system("cat " + i + "_s_1.fastq | echo ' Donor 3 (6dpi) had' $((`wc -l`/4)) ' read pairs before Bowtie filtering' >> miniProject.log")
-        os.system("zcat " + i + mapped + " | echo ' and ' $((`wc -l`/4)) 'read pairs after' >> miniProject.log")
-    else:
-        break
+#then create anohter loop to add the before and after reads to a file
+for item in SRRnum:
+    os.system('wc -l < ' + item+ '_s_1.fastq >> beforereadfile.txt')
+    os.system('wc -l < ' + item+ '_mapped.1.fq >> afterreadfile.txt')
+
+#then go through the before/after files and determine the lengths
+beforebow = open('beforereadfile.txt').read().rstrip()
+bbow = beforebow.split('\n')
+beforelength = list(map(int, bbow))
+beforelength = [length/4 for length in beforelength]
+
+afterbow = open('afterreadfile.txt').read().rstrip()
+abow = afterbow.split('\n')
+afterlength = list(map(int, abow))
+afterlength = [length/4 for length in afterlength]
+
+#write the different before and after lengths to the log file
+logfile1 = open('miniProject.log', 'a')
+logfile1.write('Donor 1 (2dpi) had ' + str(beforelength[0])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[0])+ ' read pairs after.' + '\n')
+logfile1.write('Donor 1 (6dpi) had ' + str(beforelength[1])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[1])+ ' read pairs after.' + '\n')
+logfile1.write('Donor 3 (2dpi) had ' + str(beforelength[2])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[2])+ ' read pairs after.' + '\n')
+logfile1.write('Donor 3 (6dpi) had ' + str(beforelength[3])+ ' read pairs before Bowtie2 filtering and '+ str(afterlength[3])+ ' read pairs after.' + '\n')
+logfile1.close()
 
 
 
@@ -131,7 +139,7 @@ for i in SRRnum:
 #Step 5. use bowtie2 output reads to assembly transcriptomes to produce 1 assembly via spades 
 
 #run spades and add the spades command to the log file
-spades_command = 'spades -k 55,77,99,127 -t 2 --only-assembler --pe1-1 SRR5660030_mapped_1.fq.gz --pe1-2 SRR5660030_mapped_2.fq.gz --pe2-1 SRR5660033_mapped_1.fq.gz --pe2-2 SRR5660033_mapped_2.fq.gz --pe3-1 SRR5660044_mapped_1.fq.gz --pe3-2 SRR5660044_mapped_2.fq.gz --pe4-1 SRR5660045_mapped_1.fq.gz --pe4-2 SRR5660045_mapped_2.fq.gz -o SpadesAssembly/'
+spades_command = 'spades -k 55,77,99,127 -t 2 --only-assembler --pe1-1 SRR5660030_mapped_1.fq --pe1-2 SRR5660030_mapped_2.fq --pe2-1 SRR5660033_mapped_1.fq --pe2-2 SRR5660033_mapped_2.fq --pe3-1 SRR5660044_mapped_1.fq --pe3-2 SRR5660044_mapped_2.fq --pe4-1 SRR5660045_mapped_1.fq --pe4-2 SRR5660045_mapped_2.fq -o SpadesAssembly/'
 os.system(spades_command)
 
 
@@ -205,7 +213,6 @@ filelongcon.close()
 
 #create the blast database command and call it 
 makeblastdb = 'makeblastdb -in dbsequence.fasta -out betaherpesvirinaedb -title betaherpesvirinaedb -dbtype nucl'
-os.system('cd ..')
 os.system(makeblastdb)
 
 #create the blast command and call it
@@ -214,22 +221,19 @@ os.system(blast_command)
 
 #then parse the blast results and grab the 10 hits
 import csv
-outputfile1 = 'blastn_results.csv'
-#label the headers into a list
-headernames = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', 'bitscore', 'evalue', 'stitle']
-
 #create a function to parse the blast hits
 def parse_blast(filename, headers):
-    x = []
+    newlist = []
     blast_results = open(filename, 'r')
     rows = csv.DictReader(blast_results, headers, delimiter=',')
     for row in rows:
-        x.append(row)
+        newlist.append(row)
     blast_results.close()
-    return x
+    return newlist
 
-#call the function and grab the top 10 hits
-parsedblast = parse_blast(outputfile1, headernames)
+#label the file/headers, call the function and grab the top 10 hits
+headernames = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', 'bitscore', 'evalue', 'stitle']
+parsedblast = parse_blast("blastn_results.csv", headernames)
 topten = parsedblast[:10]
 
 #now, write the output to the log file
@@ -245,3 +249,4 @@ for item in topten:
     finaloutput = '\t'.join(iteminfo)
     logging.info(finaloutput)
 
+#the python wrapper ends here
