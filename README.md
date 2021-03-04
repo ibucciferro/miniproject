@@ -2,15 +2,15 @@
 
 
 ### Packages to have installed before running
-- Unix (kallisto, SPAdes, bowtie2, blast+)
-kallisto (https://pachterlab.github.io/kallisto/download)
-SPAdes (http://cab.spbu.ru/files/release3.14.0/manual.html)
-bowtie2 (http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#obtaining-bowtie-2)
+Unix (kallisto, SPAdes, bowtie2, blast+)
+- kallisto (https://pachterlab.github.io/kallisto/download)
+- SPAdes (http://cab.spbu.ru/files/release3.14.0/manual.html)
+- bowtie2 (http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#obtaining-bowtie-2)
 
-- Python (Biopython)
+Python (Biopython)
 
-- R (sleuth)
-sleuth (https://pachterlab.github.io/sleuth/download)
+R (sleuth)
+- sleuth (https://pachterlab.github.io/sleuth/download)
 
 ### Files for the MiniProject Found in the Repo
 - README_md: documentation for the miniproject repo
