@@ -2,7 +2,7 @@
 import os
 from Bio import Entrez
 from Bio import SeqIO
-#import logging to be used to add the output to the log file for steps 3 and 8
+#import logging to be used to add the output to the log file for steps 8
 import logging
 
 
@@ -76,7 +76,7 @@ os.system('mkdir kallisto_results')
 #create directories for each of the SRR files in the kallisto_results folder
 os.system('cd kallisto_results')
 for record1 in SRRnum:
-    os.system('mkdir ' record1)
+    os.system('mkdir ' +record1)
 os.system('cd ..')
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
@@ -87,11 +87,17 @@ for record in SRRnum:
 os.system('cd ..')
 os.system('Rscript Rsleuth.R')
 
-#using the logging system, write the output to the log file
-logging.basicConfig(filename = 'miniProject.log', level = logging.INFO)
-FDRfile = open('sleuth_results.txt', 'r')
-for newline in FDRfile:
-    logging.info(newline)
+#then write the output results to the log file 
+f = open('sleuth_results.txt', 'r')
+f1 = f.readlints()
+sleuthoutput = []
+for line1 in f:
+    sleuthoutput.append(line1)
+    
+with open('miniProject.log', 'a') as output:
+    for item in sleuthoutput:
+        output.write(item+'\n')
+output.close()
 
 
 
