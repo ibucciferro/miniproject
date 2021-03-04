@@ -1,6 +1,6 @@
 library(sleuth)
 library(dplyr)
-
+library(data.table)
 
 #start by reading the data table txt file
 stab <- read.table("sleuthdata.txt", header = TRUE, stringsAsFactors = FALSE)

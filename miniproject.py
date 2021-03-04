@@ -140,16 +140,16 @@ with open('miniProject.log', 'a') as output:
 #Step 6. find the number of contigs with a length greater than 1000 bp
 #open the file with the contigs in it and add each of the records to a list
 contigslist = []
-handlefile = open('SpadesAssembly/contigs.fasta')
-for items in SeqIO.parse(handlefile, 'fasta'):
+handle1 = open('SpadesAssembly/contigs.fasta')
+for items in SeqIO.parse(handle1, 'fasta'):
     contigslist.append(items)
-handlefile.close()
+handle1.close()
+
 #then create a counting loop for the number of contigs with length > 1000 bp
 longcontiglist = []
 for contig in contigslist:
-    sequence = str(contig.seq)
-    if len(sequence)>1000:
-          longcontiglist.append(sequence)
+    if len(str(contig.seq))>1000:
+          longcontiglist.append(str(contig.seq))
 
     else:
           continue
@@ -168,6 +168,7 @@ with open('miniProject.log', 'a') as output:
 totallength = 0
 for contig in longcontiglist:
     totallength = totallength + len(contig)
+    
 #write the totallength variable to the log file
 with open('miniProject.log', 'a') as output:
     output.write('There are ' + str(totallength) + ' bp in the assembly.' + '\n'+ '\n')
