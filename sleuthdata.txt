@@ -1,5 +1,5 @@
 sample condition path
-SRR5660030 2dpi miniProject_Isabella_Bucciferro/kallisto_results
-SRR5660033 6dpi miniProject_Isabella_Bucciferro/kallisto_results
-SRR5660044 2dpi miniProject_Isabella_Bucciferro/kallisto_results
-SRR5660045 6dpi miniProject_Isabella_Bucciferro/kallisto_results
+SRR5660030 2dpi kallisto_results
+SRR5660033 6dpi kallisto_results
+SRR5660044 2dpi kallisto_results
+SRR5660045 6dpi kallisto_results
