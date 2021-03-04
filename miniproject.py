@@ -28,11 +28,12 @@ for item in testdata:
 pairedend_command = 'fastq-dump -I --split-files'
 for i in SRRnum:
     os.system(pairedend_command + ' ' + i)
-#turn the files into sample data by only using the first 50000 lines of the files
-#can change how much of the data is run through the wrapper by removing the "head -n 50000"
+
+#turn the files into sample data by only using the first 10000 lines of the files
+#can change how much of the data is run through the wrapper by removing the "head -n 10000"
 for j in SRRnum:
-    os.system('head -n 50000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
-    os.system('head -n 50000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
+    os.system('head -n 10000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
+    os.system('head -n 10000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
     
     
     
@@ -89,6 +90,7 @@ os.system('Rscript Rsleuth.R')
 
 #using the logging system, write the output to the log file
 logging.basicConfig(filename = 'miniProject.log', level = logging.INFO)
+#open the sleuth results file and read the lines into the log file
 FDRfile = open('sleuth_results.txt', 'r')
 for newline in FDRfile:
     logging.info(newline)
@@ -203,6 +205,7 @@ for items in SeqIO.parse(file12, 'fasta'):
     sequence = str(items.seq)
     if sequence == longestcon:
         longestid = str(items.id)
+#write the ID and sequence of the longest contig to the longestcontigfile
 filelongcon = open('longestcontigfile.txt','w')
 filelongcon.write('>' + longestid+ '\n')
 filelongcon.write(str(longestcon))
@@ -213,7 +216,7 @@ filelongcon.close()
 makeblastdb = 'makeblastdb -in dbsequence.fasta -out betaherpesvirinaedb -title betaherpesvirinaedb -dbtype nucl'
 os.system(makeblastdb)
 
-#create the blast command and call it
+#create the blast command and call it to run the blastn
 blast_command = 'blastn -query longestcontigfile.txt -db betaherpesvirinaedb -out blastn_results.csv -outfmt "10 sacc pident length qstart qend sstart send bitscore evalue stitle"'
 os.system(blast_command)
 
@@ -246,5 +249,34 @@ for item in topten:
     finaloutput = '\t'.join(iteminfo)
     logging.info(finaloutput)
 
+
+#finally, move all of the output files into the miniProject_NAME file (miniProject_Isabella_Bucciferro)
+for num in SRRnum:
+    os.system('mv '+num+'_1.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'_2.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'_mapped_1.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'_mapped_2.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'_s_1.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'_s_2.fastq ~/miniProject_Isabella_Bucciferro')mv 
+    os.system('mv '+num+'mapping.sam ~/miniProject_Isabella_Bucciferro')
     
+os.system('mv kallisto_results miniProject_Isabella_Bucciferro/kallisto_results')
+os.system('mv SpadesAssembly miniProject_Isabella_Bucciferro/SpadesAssembly')
+os.system('mv sleuth_results.txt ~/miniProject_Isabella_Bucciferro')
+os.system('mv longestcontigfile.txt ~/miniProject_Isabella_Bucciferro')
+os.system('mv cdsHCMV.idx ~/miniProject_Isabella_Bucciferro')
+os.system('mv cdsHCMV.fasta ~/miniProject_Isabella_Bucciferro')
+os.system('mv blastn_results.csv ~/miniProject_Isabella_Bucciferro')
+os.system('mv afterreadfile.txt ~/miniProject_Isabella_Bucciferro')
+os.system('mv beforereadfile.txt ~/miniProject_Isabella_Bucciferro')
+os.system('mv betaherpesvirinaedb.nhr ~/miniProject_Isabella_Bucciferro')
+os.system('mv betaherpesvirinaedb.nin ~/miniProject_Isabella_Bucciferro')
+os.system('mv betaherpesvirinaedb.nsq ~/miniProject_Isabella_Bucciferro')
+os.system('mv CDS_HCMV.1.bt2 ~/miniProject_Isabella_Bucciferro')
+os.system('mv CDS_HCMV.2.bt2 ~/miniProject_Isabella_Bucciferro')
+os.system('mv CDS_HCMV.3.bt2 ~/miniProject_Isabella_Bucciferro')
+os.system('mv CDS_HCMV.4.bt2 ~/miniProject_Isabella_Bucciferro')
+os.system('mv CDS_HCMV.rev.1.bt2 ~/miniProject_Isabella_Bucciferro')
+os.system('mv CDS_HCMV.rev.2.bt2 ~/miniProject_Isabella_Bucciferro')
+
 #end of the python wrapper
