@@ -51,7 +51,7 @@ item = SeqIO.read(handle, 'gb')
 handle.close()
 
 #loop through item.features (the CDS features) and write them to the file
-outputfile = open('cdsHCMV.txt', 'w')
+outputfile1 = open('cdsHCMV.fasta', 'w')
 counter = 0
 for j in item.features:
     if j.type == 'CDS':
@@ -59,8 +59,8 @@ for j in item.features:
         counter = counter + 1
         name = j.qualifiers['protein_id']
         sequence = j.extract(item.seq)
-        outputfile.write(">" + str(name) + '\n' + str(sequence) + '\n')
-outputfile.close()
+        outputfile1.write(">" + str(name) + '\n' + str(sequence) + '\n')
+outputfile1.close()
 
 #write the HCMV CDS number to the log file
 #store the intended output in a variable and call it when writing to the miniproject.log
@@ -70,8 +70,7 @@ with open('miniProject.log', 'a') as output:
 
 #finally, build the index using kallisto
 os.chdir('miniProject_Isabella_Bucciferro')
-os.system('kallisto index -i cdsHCMV.idx cdsHCMV.txt')
-
+os.system('kallisto index -i cds_HCMV.idx cdsHCMV.fasta')
 
 
 
@@ -88,7 +87,7 @@ os.system("cd ..")
 
 #loop through the SRR files and call kallisto before running the R script for sleuth
 for record in SRRnum:
-    os.system('time kallisto quant -i cdsHCMV.idx -o kallisto_results/' +record+ '.1 -b 30 -t 2 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
+    os.system('time kallisto quant -i cds_HCMV.idx -o kallisto_results/' +record+ '.1 -b 30 -t 2 '+ record + '_s_1.fastq ' + record + '_s_2.fastq')
 
 #then change the directory, run the R script, and then change back to the old directory!
 os.system('Rscript Rsleuth.R')
@@ -102,7 +101,7 @@ os.system('Rscript Rsleuth.R')
 
 #Step 4. use bowtie2 to create an index for HCMV and save reads to the map
 #begin by building the bowtie index and running the bowtie command
-os.system('bowtie2-build cdsHCMV.txt cdsHCMV')
+os.system('bowtie2-build cdsHCMV.fasta cdsHCMV')
 os.chdir('..')
 #then loop through the SRR numbers and map the reads using a bowtie command line call
 for item in SRRnum:
@@ -236,9 +235,8 @@ headernames = ['sacc', 'pident', 'length', 'qstart', 'qend', 'sstart', 'send', '
 parsedblast = parse_blast("blastn_results.csv", headernames)
 topten = parsedblast[:10]
 
-#now, write the output to the log file
+#now, write the output to the log file using the logging tool
 logging.basicConfig(filename = 'miniProject.log', level = logging.INFO)
-
 #tab delimit the headers
 tabhead = '\t'.join(headernames)
 logging.info(tabhead)
