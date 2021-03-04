@@ -29,11 +29,11 @@ pairedend_command = 'fastq-dump -I --split-files'
 for i in SRRnum:
     os.system(pairedend_command + ' ' + i)
 
-#turn the files into sample data by only using the first 10000 lines of the files
-#can change how much of the data is run through the wrapper by removing the "head -n 10000"
+#turn the files into sample data by only using the first 50000 lines of the files
+#can change how much of the data is run through the wrapper by removing the "head -n 50000"
 for j in SRRnum:
-    os.system('head -n 10000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
-    os.system('head -n 10000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
+    os.system('head -n 50000 ' + j + '_1.fastq' + ' > ' + j + '_s_1.fastq')
+    os.system('head -n 50000 ' + j + '_2.fastq' + ' > ' + j + '_s_2.fastq')
     
     
     
@@ -257,9 +257,8 @@ for num in SRRnum:
     os.system('mv '+num+'_mapped_1.fastq ~/miniProject_Isabella_Bucciferro')
     os.system('mv '+num+'_mapped_2.fastq ~/miniProject_Isabella_Bucciferro')
     os.system('mv '+num+'_s_1.fastq ~/miniProject_Isabella_Bucciferro')
-    os.system('mv '+num+'_s_2.fastq ~/miniProject_Isabella_Bucciferro')mv 
-    os.system('mv '+num+'mapping.sam ~/miniProject_Isabella_Bucciferro')
-    
+    os.system('mv '+num+'_s_2.fastq ~/miniProject_Isabella_Bucciferro')
+    os.system('mv '+num+'mapping.sam ~/miniProject_Isabella_Bucciferro') 
 os.system('mv kallisto_results miniProject_Isabella_Bucciferro/kallisto_results')
 os.system('mv SpadesAssembly miniProject_Isabella_Bucciferro/SpadesAssembly')
 os.system('mv sleuth_results.txt ~/miniProject_Isabella_Bucciferro')
@@ -272,11 +271,5 @@ os.system('mv beforereadfile.txt ~/miniProject_Isabella_Bucciferro')
 os.system('mv betaherpesvirinaedb.nhr ~/miniProject_Isabella_Bucciferro')
 os.system('mv betaherpesvirinaedb.nin ~/miniProject_Isabella_Bucciferro')
 os.system('mv betaherpesvirinaedb.nsq ~/miniProject_Isabella_Bucciferro')
-os.system('mv CDS_HCMV.1.bt2 ~/miniProject_Isabella_Bucciferro')
-os.system('mv CDS_HCMV.2.bt2 ~/miniProject_Isabella_Bucciferro')
-os.system('mv CDS_HCMV.3.bt2 ~/miniProject_Isabella_Bucciferro')
-os.system('mv CDS_HCMV.4.bt2 ~/miniProject_Isabella_Bucciferro')
-os.system('mv CDS_HCMV.rev.1.bt2 ~/miniProject_Isabella_Bucciferro')
-os.system('mv CDS_HCMV.rev.2.bt2 ~/miniProject_Isabella_Bucciferro')
 
 #end of the python wrapper
