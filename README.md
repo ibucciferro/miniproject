@@ -22,7 +22,7 @@ R (sleuth)
 - Rsleuth.R: R script used to analyze the kallisto results
 
 ### How to Run the Program
-- After cloning the repository using ```git clone https://github.com/ibucciferro/miniproject.git``` in Unix, move into the miniproject folder using 'cd miniproject'
+- After cloning the repository using ```git clone https://github.com/ibucciferro/miniproject.git``` in Unix, move into the miniproject folder using ```cd miniproject```
 - To run the script, call ```python3 miniproject.py``` in the Unix command line to run the python wrapper 
 - If you want to run the full code, follow the comment in Step 2 (remove the head label). Otherwise, run the code as is.
 
